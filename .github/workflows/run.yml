@@ -52,6 +52,13 @@ jobs:
           CLUB_ARG: ${{ github.event.inputs.club }}
           YEARS_ARG: ${{ github.event.inputs.years }}
           OUTPUT_ARG: ${{ github.event.inputs.output || 'excel' }}
+          # sports-keiba.com はデータセンター系IP(GitHub Actionsのランナーを含む)からの
+          # アクセスをブロックしている。住宅/モバイル系プロキシを使う場合は
+          # リポジトリのSecretsに HORSE_DB_HTTPS_PROXY (例: http://user:pass@host:port)
+          # を設定すればよい。requestsは標準でHTTPS_PROXY環境変数を自動参照するため
+          # コード変更は不要。未設定なら空文字のままで従来通り直接アクセスを試みる。
+          HTTPS_PROXY: ${{ secrets.HORSE_DB_HTTPS_PROXY }}
+          HTTP_PROXY: ${{ secrets.HORSE_DB_HTTPS_PROXY }}
         run: |
           CMD="python main.py --output ${OUTPUT_ARG:-excel}"
           if [ -n "$CLUB_ARG" ]; then
