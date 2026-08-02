@@ -53,6 +53,59 @@ TABLE_NO_THEAD_ALT_HEADERS = """
 </html>
 """
 
+# 実際のsports-keiba.com記事(2026年8月時点)で確認された、シルクHC募集予定馬の
+# 表構造。母・生年月日・測尺日の列は存在せず、一口/厩舎という無関係な列が挟まる。
+REAL_SILK_TABLE = """
+<html>
+<body>
+<h1>シルクHC 2026年度 募集予定馬 測尺情報</h1>
+<p>馬名のリンクはnetkeiba</p>
+<table>
+  <tr>
+    <td>No.</td><td>募集予定馬名</td><td>性別</td><td>一口</td><td>厩舎</td>
+    <td>父</td><td>体高</td><td>胸囲</td><td>管囲</td><td>体重</td>
+  </tr>
+  <tr>
+    <td>1</td><td><a href="https://db.netkeiba.com/horse/dummy1">アーモンドアイの25</a></td>
+    <td>牡</td><td>60</td><td>木村哲也</td><td>イクイノックス</td>
+    <td>153</td><td>174</td><td>20.9</td><td>435</td>
+  </tr>
+  <tr>
+    <td>2</td><td><a href="https://db.netkeiba.com/horse/dummy2">ソーディヴァインの25</a></td>
+    <td>牝</td><td>13</td><td>鹿戸雄一</td><td>イクイノックス</td>
+    <td>154</td><td>172.5</td><td>19.2</td><td>424</td>
+  </tr>
+</table>
+</body>
+</html>
+"""
+
+
+def test_parse_matches_real_sports_keiba_table_structure():
+    url = "https://sports-keiba.com/2026/07/01/26silklist1/"
+    records = parse(REAL_SILK_TABLE, url, "silk", 2026, ["シルク"])
+    assert len(records) == 2
+
+    first = records[0]
+    assert first.recruit_no == "1"
+    assert first.name == "アーモンドアイの25"
+    assert first.sex == "牡"
+    assert first.sire == "イクイノックス"
+    assert first.height_cm == 153.0
+    assert first.girth_cm == 174.0
+    assert first.cannon_cm == 20.9
+    assert first.weight_kg == 435.0
+    # サイト側に列が存在しない項目はNoneのままでよい
+    assert first.dam is None
+    assert first.birth_date is None
+    assert first.measure_date is None
+
+    second = records[1]
+    assert second.name == "ソーディヴァインの25"
+    assert second.sex == "牝"
+    assert second.weight_kg == 424.0
+
+
 IRRELEVANT_ARTICLE = """
 <html>
 <body>
