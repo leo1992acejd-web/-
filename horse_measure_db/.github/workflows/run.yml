@@ -1,0 +1,74 @@
+name: Run horse_measure_db scraper
+
+on:
+  workflow_dispatch:
+    inputs:
+      club:
+        description: "対象クラブ (silk carrot sunday shadai をスペース区切り。空欄なら全クラブ)"
+        required: false
+        default: ""
+      years:
+        description: "対象募集年度 (例: 2024 2025 2026。空欄ならデフォルト)"
+        required: false
+        default: ""
+      output:
+        description: "出力形式"
+        required: false
+        default: "excel"
+        type: choice
+        options:
+          - excel
+          - csv
+          - sqlite
+  schedule:
+    # 毎週月曜 03:00 JST (18:00 UTC 日曜) に定期実行
+    - cron: "0 18 * * 0"
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: horse_measure_db
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: horse_measure_db/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Run scraper
+        env:
+          CLUB_ARG: ${{ github.event.inputs.club }}
+          YEARS_ARG: ${{ github.event.inputs.years }}
+          OUTPUT_ARG: ${{ github.event.inputs.output || 'excel' }}
+        run: |
+          CMD="python main.py --output ${OUTPUT_ARG:-excel}"
+          if [ -n "$CLUB_ARG" ]; then
+            CMD="$CMD --club $CLUB_ARG"
+          fi
+          if [ -n "$YEARS_ARG" ]; then
+            CMD="$CMD --years $YEARS_ARG"
+          fi
+          echo "Running: $CMD"
+          eval "$CMD"
+
+      - name: Upload output artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: horse-measure-db-output
+          path: |
+            horse_measure_db/output/*.xlsx
+            horse_measure_db/output/*.csv
+            horse_measure_db/output/*.db
+          if-no-files-found: warn
